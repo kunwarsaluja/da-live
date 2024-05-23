@@ -132,20 +132,20 @@ export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstor
 }
 
 export function addLocNodes(baseNodes) {
-  if (!baseNodes.content.includes('loc_deleted')) {
-    baseNodes.content.push('loc_deleted');
+  if (!baseNodes.content.includes('loc_content_source')) {
+    baseNodes.content.push('loc_content_source');
     baseNodes.content.push({
       group: 'block',
       content: 'block+',
-      parseDOM: parseLocDOM('da-loc-deleted'),
-      toDOM: () => ['da-loc-deleted', { contenteditable: false }, 0],
+      parseDOM: parseLocDOM('da-content-source'),
+      toDOM: () => ['da-content-source', { contenteditable: false }, 0],
     });
-    baseNodes.content.push('loc_added');
+    baseNodes.content.push('loc_content_current');
     baseNodes.content.push({
       group: 'block',
       content: 'block+',
-      parseDOM: parseLocDOM('da-loc-added'),
-      toDOM: () => ['da-loc-added', { contenteditable: false }, 0],
+      parseDOM: parseLocDOM('da-content-current'),
+      toDOM: () => ['da-content-current', { contenteditable: false }, 0],
     });
   }
   return baseNodes;
