@@ -615,7 +615,7 @@ da-library.hide {
   white-space: nowrap;
 }
 
-da-loc-deleted, da-loc-added {
+da-content-source, da-content-current {
   display: block;
   position: relative;
 }

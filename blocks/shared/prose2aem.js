@@ -129,6 +129,35 @@ function parseIcons(editor) {
   );
 }
 
+const removeLocSourceContent = (doc) => {
+  const tags = doc.querySelectorAll('main da-content-source');
+  tags.forEach((tag) => {
+    tag.innerHTML = '';
+  });
+};
+
+const removeLocTagsForLivePreview = (html) => {
+  const tags = html.querySelectorAll('main da-content-current');
+
+  // Iterate over each tag
+  tags.forEach((tag) => {
+    while (tag.firstChild) {
+      tag.parentNode.insertBefore(tag.firstChild, tag);
+    }
+    tag.parentNode.removeChild(tag);
+  });
+
+  // Wrap tables
+  const tables = html.querySelectorAll('table');
+  tables.forEach((table) => {
+    if (table.parentNode.classList.contains('tableWrapper')) return;
+    const wrapperDiv = document.createElement('div');
+    wrapperDiv.classList.add('tableWrapper');
+    table.parentNode.insertBefore(wrapperDiv, table);
+    wrapperDiv.appendChild(table);
+  });
+};
+
 const removeEls = (els) => els.forEach((el) => el.remove());
 
 export default function prose2aem(editor, live) {
@@ -148,6 +177,9 @@ export default function prose2aem(editor, live) {
   const gapCursors = editor.querySelectorAll('.ProseMirror-gapcursor');
   removeEls(gapCursors);
 
+  const locOverlays = editor.querySelectorAll('.loc-color-overlay');
+  removeEls(locOverlays);
+
   const highlights = editor.querySelectorAll('span.ProseMirror-yjs-selection');
   highlights.forEach((el) => {
     el.parentElement.replaceChild(document.createTextNode(el.innerText), el);
@@ -157,12 +189,15 @@ export default function prose2aem(editor, live) {
 
   convertParagraphs(editor);
 
-  convertBlocks(editor);
+  removeLocSourceContent(editor);
 
   if (live) {
+    removeLocTagsForLivePreview(editor);
     removeMetadata(editor);
     parseIcons(editor);
   }
+
+  convertBlocks(editor);
 
   makePictures(editor);
 

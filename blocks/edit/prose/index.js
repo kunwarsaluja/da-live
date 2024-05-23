@@ -280,12 +280,12 @@ export default function initProse({ editor, path }) {
     state,
     dispatchTransaction,
     nodeViews: {
-      loc_added(node, view, getPos) {
-        const LocAddedView = getLocClass('da-loc-added', getSchema, dispatchTransaction, { isLangstore: false });
+      loc_content_current(node, view, getPos) {
+        const LocAddedView = getLocClass('da-content-current', getSchema, dispatchTransaction, { isLangstore: false });
         return new LocAddedView(node, view, getPos);
       },
-      loc_deleted(node, view, getPos) {
-        const LocDeletedView = getLocClass('da-loc-deleted', getSchema, dispatchTransaction, { isLangstore: true });
+      loc_content_source(node, view, getPos) {
+        const LocDeletedView = getLocClass('da-content-source', getSchema, dispatchTransaction, { isLangstore: true });
         return new LocDeletedView(node, view, getPos);
       },
     },

@@ -37,11 +37,11 @@ test('Regional Edit Document', async ({ page }) => {
     expect(page.getByText('Added H1 Here', { exact: true })).toBeVisible();
 
     await page.locator('div.loc-color-overlay.loc-langstore').hover();
-    await page.locator('da-loc-deleted').getByText('Delete', { exact: true }).click();
+    await page.locator('da-content-source').getByText('Delete', { exact: true }).click();
     await expect(page.getByText('Deleted H1 Here', { exact: true })).not.toBeVisible();
 
     await page.locator('div.loc-color-overlay.loc-regional').hover();
-    await page.locator('da-loc-added').getByText('Keep', { exact: true }).click();
+    await page.locator('da-content-current').getByText('Keep', { exact: true }).click();
     await expect(page.getByText('Added H1 Here', { exact: true })).toBeVisible();
     await expect(page.locator('div.loc-color-overlay.loc-regional')).not.toBeVisible();
   } finally {

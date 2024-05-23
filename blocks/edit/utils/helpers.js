@@ -46,13 +46,33 @@ function para() {
   return document.createElement('p');
 }
 
+function locHydrateContentSource(doc) {
+  const contentSourceEls = doc.querySelectorAll('da-content-source');
+  const daMetadataEl = doc.querySelector('da-metadata');
+
+  // Probably can be removed after debugging
+  if ((!daMetadataEl && contentSourceEls.length)
+    || (daMetadataEl && !contentSourceEls.length)) {
+    // eslint-disable-next-line no-console
+    console.warn('DA Metadata and da-content-source elements are not in sync.');
+    return;
+  }
+  // end of debugging
+
+  contentSourceEls.forEach((contentSourceEl) => {
+    const { hash } = contentSourceEl.dataset;
+    const hashContent = daMetadataEl.querySelector(`da-content-source[data-obj-hash="${hash}"]`)?.innerHTML;
+    contentSourceEl.innerHTML = hashContent;
+  });
+}
+
 export function aem2prose(doc) {
   // Fix BRs
   const brs = doc.querySelectorAll('p br');
   brs.forEach((br) => { br.remove(); });
 
   // Fix blocks
-  const blocks = doc.querySelectorAll('main > div > div, da-loc-deleted > div, da-loc-added > div, da-loc-deleted.da-group > div > div, da-loc-added.da-group > div > div');
+  const blocks = doc.querySelectorAll('main > div > div, da-content-source > div, da-content-current > div, da-content-source.da-group > div > div, da-content-current.da-group > div > div');
   blocks.forEach((block) => {
     if (block.className?.includes('loc-')) return;
     const table = getTable(block);
