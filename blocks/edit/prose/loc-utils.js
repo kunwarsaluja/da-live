@@ -1,4 +1,6 @@
+/* eslint-disable max-classes-per-file */
 import {
+  DOMParser,
   DOMSerializer,
   Fragment,
   Slice,
@@ -78,22 +80,11 @@ function deleteLocContent(view, pos, node) {
   return transaction;
 }
 
-function parseLocDOM(locTag) {
-  return [{
-    tag: locTag,
-    contentElement: (dom) => {
-      // Only parse the content of the node, not the temporary elements
-      const deleteThese = dom.querySelectorAll('[loc-temp-dom]');
-      deleteThese.forEach((e) => e.remove());
-      return dom;
-    },
-  }];
-}
-
 export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstore } = {}) {
   return class {
     constructor(node, view, getPos) {
       this.dom = document.createElement(elName);
+      this.dom.dataset.objHash = node.attrs.objHash;
       const serializer = DOMSerializer.fromSchema(getSchema());
       const nodeDOM = serializer.serializeFragment(node.content);
 
@@ -104,10 +95,16 @@ export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstor
       this.langOverlay = overlay;
 
       deleteBtn.addEventListener('click', () => {
+        if (node.attrs.objHash) {
+          delete window.daMetadata[node.attrs.objHash];
+        }
         dispatchTransaction(deleteLocContent(view, getPos(), node));
       });
 
       keepBtn.addEventListener('click', () => {
+        if (node.attrs.objHash) {
+          delete window.daMetadata[node.attrs.objHash];
+        }
         dispatchTransaction(keepLocContentInPlace(view, getPos(), node));
       });
 
@@ -131,22 +128,81 @@ export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstor
   };
 }
 
-export function addLocNodes(baseNodes) {
-  if (!baseNodes.content.includes('loc_content_source')) {
-    baseNodes.content.push('loc_content_source');
+function parseLocDOM(locTag, { getHash = false } = {}) {
+  return [{
+    tag: locTag,
+    getAttrs: (dom) => {
+      if (getHash) {
+        return { objHash: dom.dataset.objHash };
+      }
+      return {};
+    },
+    contentElement: (dom) => {
+      // Only parse the content of the node, not the temporary elements
+      const deleteThese = dom.querySelectorAll('[loc-temp-dom]');
+      deleteThese.forEach((e) => e.remove());
+      return dom;
+    },
+  }];
+}
+
+export function addLocNodes(baseNodes, daMetadata) {
+  if (!baseNodes.content.includes('da_content_source')) {
+    baseNodes.content.push('da_content_source');
     baseNodes.content.push({
+      attrs: { objHash: { default: null } },
       group: 'block',
       content: 'block+',
-      parseDOM: parseLocDOM('da-content-source'),
-      toDOM: () => ['da-content-source', { contenteditable: false }, 0],
+      parseDOM: parseLocDOM('da-content-source', { getHash: true }),
+      toDOM: (node) => ['da-content-source',
+        { contenteditable: false, 'data-obj-hash': node.attrs.objHash },
+        0,
+      ],
     });
-    baseNodes.content.push('loc_content_current');
+    baseNodes.content.push('da_content_current');
     baseNodes.content.push({
       group: 'block',
       content: 'block+',
       parseDOM: parseLocDOM('da-content-current'),
       toDOM: () => ['da-content-current', { contenteditable: false }, 0],
     });
+    baseNodes.content.push('da_metadata');
+    baseNodes.content.push({
+      group: 'block',
+      content: 'block+',
+      attrs: { objHash: { default: null }, innHtml: { default: null } },
+      parseDOM: [{
+        tag: 'da-metadata',
+        ignore: true,
+        getAttrs: (dom) => {
+          [...dom.children].forEach((child) => {
+            if (child.className === 'da-content-source') {
+              daMetadata[child.dataset.objHash] = child.innerHTML;
+            }
+          });
+          return {};
+        },
+      }],
+      toDOM: () => ['da-metadata'],
+    });
   }
   return baseNodes;
+}
+
+export function getDaMetadataClass(getSchema) {
+  return class DaMetaData {
+    constructor(node) {
+      this.dom = document.createElement('da-metadata');
+      this.dom.style.display = 'none';
+
+      const serializer = DOMSerializer.fromSchema(getSchema());
+      const nodeDOM = serializer.serializeFragment(node.content);
+
+      this.dom.appendChild(nodeDOM);
+    }
+
+    destroy() {}
+
+    stopEvent() { return true; }
+  };
 }

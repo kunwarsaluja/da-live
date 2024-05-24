@@ -130,14 +130,14 @@ function parseIcons(editor) {
 }
 
 const removeLocSourceContent = (doc) => {
-  const tags = doc.querySelectorAll('main da-content-source');
+  const tags = doc.querySelectorAll('da-content-source');
   tags.forEach((tag) => {
     tag.innerHTML = '';
   });
 };
 
 const removeLocTagsForLivePreview = (html) => {
-  const tags = html.querySelectorAll('main da-content-current');
+  const tags = html.querySelectorAll('da-content-current');
 
   // Iterate over each tag
   tags.forEach((tag) => {
@@ -158,9 +158,19 @@ const removeLocTagsForLivePreview = (html) => {
   });
 };
 
+const getMetadataEl = (daMetadata) => {
+  if (!daMetadata || Object.keys(daMetadata).length === 0) return '';
+  let html = '<da-metadata>';
+  Object.keys(daMetadata).forEach((key) => {
+    html += `<div class="da-content-source" data-obj-hash="${key}">${daMetadata[key]}</div>`;
+  });
+  html += '</da-metadata>';
+  return html;
+};
+
 const removeEls = (els) => els.forEach((el) => el.remove());
 
-export default function prose2aem(editor, live) {
+export default function prose2aem(editor, live, daMetadata) {
   editor.removeAttribute('class');
   editor.removeAttribute('contenteditable');
   editor.removeAttribute('translate');
@@ -203,10 +213,13 @@ export default function prose2aem(editor, live) {
 
   makeSections(editor);
 
+  const daMd = getMetadataEl(daMetadata);
+
   const html = `
     <body>
       <header></header>
       <main>${editor.innerHTML}</main>
+      ${daMd}
       <footer></footer>
     </body>
   `;

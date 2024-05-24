@@ -60,13 +60,15 @@ function locHydrateContentSource(doc) {
   // end of debugging
 
   contentSourceEls.forEach((contentSourceEl) => {
-    const { hash } = contentSourceEl.dataset;
-    const hashContent = daMetadataEl.querySelector(`da-content-source[data-obj-hash="${hash}"]`)?.innerHTML;
+    const { objHash } = contentSourceEl.dataset;
+    const hashContent = daMetadataEl.querySelector(`.da-content-source[data-obj-hash="${objHash}"]`)?.innerHTML;
     contentSourceEl.innerHTML = hashContent;
   });
 }
 
 export function aem2prose(doc) {
+  locHydrateContentSource(doc);
+
   // Fix BRs
   const brs = doc.querySelectorAll('p br');
   brs.forEach((br) => { br.remove(); });
@@ -99,7 +101,7 @@ export function aem2prose(doc) {
 
   // Fix sections
   const sections = doc.body.querySelectorAll('main > div');
-  return [...sections].map((section, idx) => {
+  const pdoc = [...sections].map((section, idx) => {
     const fragment = new DocumentFragment();
     if (idx > 0) {
       const hr = document.createElement('hr');
@@ -108,6 +110,7 @@ export function aem2prose(doc) {
     fragment.append(...section.querySelectorAll(':scope > *'));
     return fragment;
   });
+  return { pdoc, daMetadata: doc.querySelector('da-metadata') };
 }
 
 export async function saveToAem(path, action) {
