@@ -32,12 +32,9 @@ import menu from './plugins/menu.js';
 import imageDrop from './plugins/imageDrop.js';
 import linkConverter from './plugins/linkConverter.js';
 import { COLLAB_ORIGIN, getDaAdmin } from '../../shared/constants.js';
-import { addLocNodes, getLocClass, getDaMetadataClass } from './loc-utils.js';
+import { getContentCurrentView, getContentSourceView, addLocNodes } from './loc-utils.js';
 
 const DA_ORIGIN = getDaAdmin();
-// TODO, something less hacky?
-const daMetadata = {};
-window.daMetadata = daMetadata;
 
 function addCustomMarks(marks) {
   const sup = {
@@ -62,7 +59,7 @@ function addCustomMarks(marks) {
 // with the getSchema() function in da-collab src/collab.js
 export function getSchema() {
   const { marks, nodes: baseNodes } = baseSchema.spec;
-  const withLocNodes = addLocNodes(baseNodes, daMetadata);
+  const withLocNodes = addLocNodes(baseNodes);
   const withListnodes = addListNodes(withLocNodes, 'block+', 'block');
   const nodes = withListnodes.append(tableNodes({ tableGroup: 'block', cellContent: 'block+' }));
   return new Schema({ nodes, marks: addCustomMarks(marks) });
@@ -254,16 +251,10 @@ export default function initProse({ editor, path }) {
     dispatchTransaction,
     nodeViews: {
       da_content_current(node, view, getPos) {
-        const LocCurrentView = getLocClass('da-content-current', getSchema, dispatchTransaction, { isLangstore: false });
-        return new LocCurrentView(node, view, getPos);
+        return getContentCurrentView(getSchema, dispatchTransaction, node, view, getPos);
       },
       da_content_source(node, view, getPos) {
-        const LocSourceView = getLocClass('da-content-source', getSchema, dispatchTransaction, { isLangstore: true });
-        return new LocSourceView(node, view, getPos);
-      },
-      da_metadata(node) {
-        const DaMetaDataView = getDaMetadataClass(getSchema);
-        return new DaMetaDataView(node);
+        return getContentSourceView(getSchema, dispatchTransaction, node, view, getPos);
       },
     },
   });

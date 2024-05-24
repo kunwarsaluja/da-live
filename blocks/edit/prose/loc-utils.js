@@ -1,10 +1,11 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable max-classes-per-file */
 import {
-  DOMParser,
   DOMSerializer,
   Fragment,
   Slice,
 } from 'da-y-wrapper';
+import { getDaMetadata } from '../utils/helpers.js';
 
 const LOC = {
   LANGSTORE: {
@@ -20,6 +21,9 @@ const LOC = {
     TEXT_COLOR: 'rgba(144, 42, 222)',
   },
 };
+
+const SOURCE_TAG = 'da-content-source';
+const CURRENT_TAG = 'da-content-current';
 
 function getCoverDiv(isLangstore) {
   const coverDiv = document.createElement('div');
@@ -80,11 +84,20 @@ function deleteLocContent(view, pos, node) {
   return transaction;
 }
 
-export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstore } = {}) {
+function deleteDaMetadataSourceEntry(doc, objHash) {
+  const hashCount = doc.querySelectorAll(`${SOURCE_TAG}[data-obj-hash="${objHash}"]`).length;
+  if (hashCount === 1) {
+    delete getDaMetadata()?.sourceMap?.[objHash];
+  }
+}
+
+function getLocClass(elName, getSchema, dispatchTransaction, { isLangstore } = {}) {
   return class {
     constructor(node, view, getPos) {
       this.dom = document.createElement(elName);
-      this.dom.dataset.objHash = node.attrs.objHash;
+      if (node.attrs.objHash) {
+        this.dom.dataset.objHash = node.attrs.objHash;
+      }
       const serializer = DOMSerializer.fromSchema(getSchema());
       const nodeDOM = serializer.serializeFragment(node.content);
 
@@ -96,14 +109,14 @@ export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstor
 
       deleteBtn.addEventListener('click', () => {
         if (node.attrs.objHash) {
-          delete window.daMetadata[node.attrs.objHash];
+          deleteDaMetadataSourceEntry(view._root, node.attrs.objHash);
         }
         dispatchTransaction(deleteLocContent(view, getPos(), node));
       });
 
       keepBtn.addEventListener('click', () => {
         if (node.attrs.objHash) {
-          delete window.daMetadata[node.attrs.objHash];
+          deleteDaMetadataSourceEntry(view._root, node.attrs.objHash);
         }
         dispatchTransaction(keepLocContentInPlace(view, getPos(), node));
       });
@@ -128,6 +141,16 @@ export function getLocClass(elName, getSchema, dispatchTransaction, { isLangstor
   };
 }
 
+export function getContentCurrentView(getSchema, dispatchTransaction, node, view, getPos) {
+  const View = getLocClass(CURRENT_TAG, getSchema, dispatchTransaction, { isLangstore: false });
+  return new View(node, view, getPos);
+}
+
+export function getContentSourceView(getSchema, dispatchTransaction, node, view, getPos) {
+  const View = getLocClass(SOURCE_TAG, getSchema, dispatchTransaction, { isLangstore: true });
+  return new View(node, view, getPos);
+}
+
 function parseLocDOM(locTag, { getHash = false } = {}) {
   return [{
     tag: locTag,
@@ -146,15 +169,15 @@ function parseLocDOM(locTag, { getHash = false } = {}) {
   }];
 }
 
-export function addLocNodes(baseNodes, daMetadata) {
-  if (!baseNodes.content.includes('da_content_source')) {
+export function addLocNodes(baseNodes) {
+  if (!baseNodes.content.includes(SOURCE_TAG)) {
     baseNodes.content.push('da_content_source');
     baseNodes.content.push({
       attrs: { objHash: { default: null } },
       group: 'block',
       content: 'block+',
-      parseDOM: parseLocDOM('da-content-source', { getHash: true }),
-      toDOM: (node) => ['da-content-source',
+      parseDOM: parseLocDOM(SOURCE_TAG, { getHash: true }),
+      toDOM: (node) => [SOURCE_TAG,
         { contenteditable: false, 'data-obj-hash': node.attrs.objHash },
         0,
       ],
@@ -163,46 +186,30 @@ export function addLocNodes(baseNodes, daMetadata) {
     baseNodes.content.push({
       group: 'block',
       content: 'block+',
-      parseDOM: parseLocDOM('da-content-current'),
-      toDOM: () => ['da-content-current', { contenteditable: false }, 0],
+      parseDOM: parseLocDOM(CURRENT_TAG),
+      toDOM: () => [CURRENT_TAG, { contenteditable: false }, 0],
     });
     baseNodes.content.push('da_metadata');
     baseNodes.content.push({
       group: 'block',
       content: 'block+',
-      attrs: { objHash: { default: null }, innHtml: { default: null } },
       parseDOM: [{
         tag: 'da-metadata',
-        ignore: true,
+        ignore: true, // prosemirror will not parse/insert the content of this tag
         getAttrs: (dom) => {
+          // Convert the da-metadata dom to a sourceMap object
+          // This is converted back to DOM in prose2aem
+          const daMetadata = getDaMetadata();
+          daMetadata.sourceMap ??= {};
           [...dom.children].forEach((child) => {
-            if (child.className === 'da-content-source') {
-              daMetadata[child.dataset.objHash] = child.innerHTML;
+            if (child.className === SOURCE_TAG) {
+              daMetadata.sourceMap[child.dataset.objHash] = child.innerHTML;
             }
           });
           return {};
         },
       }],
-      toDOM: () => ['da-metadata'],
     });
   }
   return baseNodes;
-}
-
-export function getDaMetadataClass(getSchema) {
-  return class DaMetaData {
-    constructor(node) {
-      this.dom = document.createElement('da-metadata');
-      this.dom.style.display = 'none';
-
-      const serializer = DOMSerializer.fromSchema(getSchema());
-      const nodeDOM = serializer.serializeFragment(node.content);
-
-      this.dom.appendChild(nodeDOM);
-    }
-
-    destroy() {}
-
-    stopEvent() { return true; }
-  };
 }

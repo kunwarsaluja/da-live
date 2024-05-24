@@ -139,7 +139,6 @@ const removeLocSourceContent = (doc) => {
 const removeLocTagsForLivePreview = (html) => {
   const tags = html.querySelectorAll('da-content-current');
 
-  // Iterate over each tag
   tags.forEach((tag) => {
     while (tag.firstChild) {
       tag.parentNode.insertBefore(tag.firstChild, tag);
@@ -158,11 +157,12 @@ const removeLocTagsForLivePreview = (html) => {
   });
 };
 
-const getMetadataEl = (daMetadata) => {
-  if (!daMetadata || Object.keys(daMetadata).length === 0) return '';
+const getMetadataHtml = (daMetadata) => {
+  const sourceMap = daMetadata?.sourceMap;
+  if (!sourceMap || Object.keys(sourceMap).length === 0) return '';
   let html = '<da-metadata>';
-  Object.keys(daMetadata).forEach((key) => {
-    html += `<div class="da-content-source" data-obj-hash="${key}">${daMetadata[key]}</div>`;
+  Object.keys(sourceMap).forEach((key) => {
+    html += `<div class="da-content-source" data-obj-hash="${key}">${sourceMap[key]}</div>`;
   });
   html += '</da-metadata>';
   return html;
@@ -213,7 +213,7 @@ export default function prose2aem(editor, live, daMetadata) {
 
   makeSections(editor);
 
-  const daMd = getMetadataEl(daMetadata);
+  const daMd = getMetadataHtml(daMetadata);
 
   const html = `
     <body>

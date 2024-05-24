@@ -50,18 +50,20 @@ function locHydrateContentSource(doc) {
   const contentSourceEls = doc.querySelectorAll('da-content-source');
   const daMetadataEl = doc.querySelector('da-metadata');
 
-  // Probably can be removed after debugging
   if ((!daMetadataEl && contentSourceEls.length)
     || (daMetadataEl && !contentSourceEls.length)) {
     // eslint-disable-next-line no-console
     console.warn('DA Metadata and da-content-source elements are not in sync.');
     return;
   }
-  // end of debugging
 
   contentSourceEls.forEach((contentSourceEl) => {
     const { objHash } = contentSourceEl.dataset;
-    const hashContent = daMetadataEl.querySelector(`.da-content-source[data-obj-hash="${objHash}"]`)?.innerHTML;
+    const contentEl = daMetadataEl.querySelector(`.da-content-source[data-obj-hash="${objHash}"]`);
+    const hashContent = contentEl.firstElementChild.nodeName === 'LI'
+      ? contentEl.firstElementChild.innerHTML
+      : contentEl.innerHTML;
+
     contentSourceEl.innerHTML = hashContent;
   });
 }
@@ -110,7 +112,7 @@ export function aem2prose(doc) {
     fragment.append(...section.querySelectorAll(':scope > *'));
     return fragment;
   });
-  return { pdoc, daMetadata: doc.querySelector('da-metadata') };
+  return pdoc;
 }
 
 export async function saveToAem(path, action) {
@@ -220,3 +222,8 @@ export function saveDaConfig(pathname, sheet) {
 export function parse(inital) {
   return new DOMParser().parseFromString(inital, 'text/html');
 }
+
+export const getDaMetadata = (() => {
+  const daMetadata = {};
+  return () => daMetadata;
+})();
