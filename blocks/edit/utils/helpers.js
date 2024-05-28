@@ -88,6 +88,20 @@ export function aem2prose(doc) {
     table.insertAdjacentElement('afterend', para());
   });
 
+  function addHrEl(el) {
+    const hr = document.createElement('hr');
+    el.parentElement.insertAfter(hr, el);
+  }
+
+  const contentSections = doc.querySelectorAll('da-content-source.da-group, da-content-current.da-group');
+  contentSections.forEach((section) => {
+    const divs = section.querySelectorAll('div');
+    divs.forEach((div) => {
+      const hr = document.createElement('hr');
+      div.parentNode.insertBefore(hr, div.nextSibling);
+    });
+  });
+
   // Fix pictures
   const imgs = doc.querySelectorAll('picture img');
   imgs.forEach((img) => {
