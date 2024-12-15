@@ -42,6 +42,7 @@ export default class DaActionBar extends LitElement {
       // Reset state when items go empty
       if (this.items.length === 0) {
         this._canPaste = false;
+        this._isMoving = false;
       }
     }
 
