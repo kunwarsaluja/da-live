@@ -5,15 +5,31 @@ import { getNx } from '../../../scripts/utils.js';
 const { default: getStyle } = await import(`${getNx()}/utils/styles.js`);
 const STYLE = await getStyle(import.meta.url);
 
+const getItemPath = (item) => {
+  // eslint-disable-next-line no-unused-vars
+  const [, org, repo, ...pathParts] = item.path.split('/');
+  const path = pathParts.join('/');
+  if (path.includes('.')) {
+    return path.split('.')[0];
+  }
+  return path;
+};
+
 export default class DaActionBar extends LitElement {
   static properties = {
     items: { attribute: false },
     _canPaste: { state: true },
+    _isMoving: { state: true },
+    _isExpanded: { state: true },
+    fullpath: { type: String },
   };
 
   constructor() {
     super();
     this.items = [];
+    this._isExpanded = false;
+    this._isMoving = false;
+    this.fullpath = '';
   }
 
   connectedCallback() {
@@ -46,13 +62,28 @@ export default class DaActionBar extends LitElement {
   }
 
   handleCopy() {
-    this._canPaste = true;
+    if (this.inNewDir()) {
+      this.handlePaste();
+    } else {
+      this._canPaste = true;
+    }
+  }
+
+  handleMove() {
+    this._isMoving = true;
+    if (this.inNewDir()) {
+      this.handlePaste();
+    } else {
+      this._canPaste = true;
+    }
   }
 
   handlePaste() {
+    const detail = { move: this._isMoving };
     const opts = { bubbles: true, composed: true };
-    const event = new CustomEvent('onpaste', opts);
+    const event = new CustomEvent('onpaste', { ...opts, detail });
     this.dispatchEvent(event);
+    this._isMoving = false;
   }
 
   handleDelete() {
@@ -80,55 +111,111 @@ export default class DaActionBar extends LitElement {
     this.dispatchEvent(event);
   }
 
+  inNewDir() {
+    // items can only be selected from the same directory
+    const itemPath = this.items?.[0]?.path;
+    const itemDir = itemPath?.split('/').slice(0, -1).join('/');
+    return itemDir !== this.fullpath;
+  }
+
   get _canShare() {
     return this.items.some((item) => item.ext && item.ext !== 'link');
   }
 
+  toggleExpand() {
+    this._isExpanded = !this._isExpanded;
+    const event = new CustomEvent('actionbar-expand', {
+      bubbles: true,
+      composed: true,
+      detail: { expanded: this._isExpanded },
+    });
+    this.dispatchEvent(event);
+  }
+
   render() {
     return html`
-      <div class="da-action-bar">
-        <div class="da-action-bar-left-rail">
-          <button
-            class="close-circle"
-            @click=${this.handleClear}
-            aria-label="Unselect items">
-            <img src="/blocks/browse/da-browse/img/CrossSize200.svg" />
-          </button>
-          <span>${this.items.length} selected</span>
+      <div class="da-action-bar ${this._isExpanded ? 'expanded' : ''}">
+        <div class="da-action-bar-main">
+          <div class="da-action-bar-left-rail">
+            <button
+              class="close-circle"
+              @click=${this.handleClear}
+              aria-label="Unselect items">
+              <img src="/blocks/browse/da-browse/img/CrossSize200.svg" />
+            </button>
+            <div class="selection-info">
+              <span>${this.items.length} selected</span>
+              ${this.items.length > 0
+                ? html`<button
+                        class="expand-toggle ${this._isExpanded ? 'expanded' : ''}"
+                        @click=${this.toggleExpand}
+                        aria-label="${this._isExpanded ? 'Collapse selection' : 'Expand selection'}">
+                        ▶
+                      </button>`
+                : ''}
+            </div>
+          </div>
+          <div class="da-action-bar-right-rail">
+            <button
+              @click=${this.handleRename}
+              class="rename-button ${this.items.length === 1 ? '' : 'hide'} ${this._canPaste ? 'hide' : ''}">
+              <img src="/blocks/browse/da-browse/img/Smock_TextEdit_18_N.svg" />
+              <span>Rename</span>
+            </button>
+            <button
+              @click=${this.handleMove}
+              class="copy-button ${this._canPaste ? 'hide' : ''}">
+              <img src="/blocks/browse/da-browse/img/Smock_MoveTo_18_N.svg" />
+              <span>Move${this.inNewDir() ? ' to here' : ''}</span>
+            </button>
+            <button
+              @click=${this.handleCopy}
+              class="copy-button ${this._canPaste ? 'hide' : ''}">
+              <img src="/blocks/browse/da-browse/img/Smock_Copy_18_N.svg" />
+              <span>Copy${this.inNewDir() ? ' to here' : ''}</span>
+            </button>
+            <button
+              @click=${this.handlePaste}
+              class="copy-button ${this._canPaste ? '' : 'hide'}">
+              <img src="/blocks/browse/da-browse/img/Smock_Copy_18_N.svg" />
+              <span>Paste</span>
+            </button>
+            <button
+              @click=${this.handleDelete}
+              class="delete-button">
+              <img src="/blocks/browse/da-browse/img/Smock_Delete_18_N.svg" />
+              <span>Delete</span>
+            </button>
+            <button
+              @click=${this.handleShare}
+              class="share-button ${this._canShare ? '' : 'hide'}">
+              <img src="/blocks/browse/img/Smock_Share_18_N.svg" />
+              <span>Share</span>
+            </button>
+          </div>
         </div>
-        <div class="da-action-bar-right-rail">
-          <button
-            @click=${this.handleRename}
-            class="rename-button ${this.items.length === 1 ? '' : 'hide'} ${this._canPaste ? 'hide' : ''}">
-            <img src="/blocks/browse/da-browse/img/Smock_TextEdit_18_N.svg" />
-            <span>Rename</span>
-          </button>
-          <button
-            @click=${this.handleCopy}
-            class="copy-button ${this._canPaste ? 'hide' : ''}">
-            <img src="/blocks/browse/da-browse/img/Smock_Copy_18_N.svg" />
-            <span>Copy</span>
-          </button>
-          <button
-            @click=${this.handlePaste}
-            class="copy-button ${this._canPaste ? '' : 'hide'}">
-            <img src="/blocks/browse/da-browse/img/Smock_Copy_18_N.svg" />
-            <span>Paste</span>
-          </button>
-          <button
-            @click=${this.handleDelete}
-            class="delete-button">
-            <img src="/blocks/browse/da-browse/img/Smock_Delete_18_N.svg" />
-            <span>Delete</span>
-          </button>
-          <button
-            @click=${this.handleShare}
-            class="share-button ${this._canShare ? '' : 'hide'}">
-            <img src="/blocks/browse/img/Smock_Share_18_N.svg" />
-            <span>Share</span>
-          </button>
-        </div>
+        ${this._isExpanded && this.items.length > 0
+          ? html`<div class="items-list">
+              ${this.items.map((item) => html`
+                <div class="item-entry">
+                  <img
+                    class="item-icon"
+                    src="/blocks/browse/img/${this._getItemIcon(item)}"
+                  />
+                  <span>${getItemPath(item)}</span>
+                </div>
+              `)}
+            </div>`
+          : ''}
       </div>`;
+  }
+
+  _getItemIcon(item) {
+    if (!item.ext) return 'Smock_Folder_18_N.svg';
+    if (item.ext === 'html') return 'Smock_FileHTML_18_N.svg';
+    if (item.ext === 'json') return 'Smock_FileData_18_N.svg';
+    if (item.ext === 'link') return 'Smock_LinkOut_18_N.svg';
+    return 'Smock_Image_18_N.svg';
   }
 }
 

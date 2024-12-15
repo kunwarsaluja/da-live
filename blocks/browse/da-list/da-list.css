@@ -119,10 +119,12 @@ da-list-item.is-expanded::after {
 }
 
 /* Drag & Drop */
-
-
 .da-browse-panel {
+  flex: 1;
+  overflow-y: auto;
   position: relative;
+  transition: margin-bottom 0.2s ease;
+  margin-bottom: 60px;
 }
 
 .da-browse-panel.is-dragged-over > * {

@@ -42,6 +42,19 @@ export default class DaList extends LitElement {
     super.connectedCallback();
     this.shadowRoot.adoptedStyleSheets = [STYLE];
     getSvg({ parent: this.shadowRoot, paths: ICONS });
+    this.addEventListener('actionbar-expand', this._handleActionBarExpand);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('actionbar-expand', this._handleActionBarExpand);
+  }
+
+  _handleActionBarExpand(e) {
+    const panel = this.shadowRoot.querySelector('.da-browse-panel');
+    if (panel) {
+      panel.style.marginBottom = e.detail.expanded ? '300px' : '60px';
+    }
   }
 
   async update(props) {
@@ -139,7 +152,7 @@ export default class DaList extends LitElement {
     this.requestUpdate();
   }
 
-  async handlePaste() {
+  async handlePaste(evt) {
     // Format the destination
     const pasteItems = this._selectedItems.map((item) => {
       let { name } = item;
@@ -169,6 +182,9 @@ export default class DaList extends LitElement {
     }));
 
     clearTimeout(showStatus);
+    if (evt.detail.move) {
+      await this.handleDelete();
+    }
     this.setStatus();
     this.handleClear();
   }
@@ -407,6 +423,7 @@ export default class DaList extends LitElement {
         @onpaste=${this.handlePaste}
         @ondelete=${this.handleDelete}
         @onshare=${this.handleShare}
+        fullpath="${this.fullpath}"
         data-visible="${this._selectedItems?.length > 0}"></da-actionbar>
       ${this._status ? this.renderStatus() : nothing}
       `;

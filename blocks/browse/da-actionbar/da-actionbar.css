@@ -12,12 +12,19 @@ button {
   z-index: 400;
   filter: drop-shadow(rgb(0 0 0 / 15%) 0 1px 4px);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   padding: 4px;
   box-sizing: border-box;
   color: #FFF;
   font-size: 14px;
+  transition: height 0.2s ease;
+}
+
+.da-action-bar-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 40px;
 }
 
 .da-action-bar button {
@@ -30,6 +37,7 @@ button {
   align-items: center;
   gap: 12px;
   padding: 0 12px;
+  pointer-events: auto;
 }
 
 .da-action-bar button:hover {
@@ -43,6 +51,7 @@ button {
 }
 
 .da-action-bar-left-rail {
+  position: relative;
   margin-left: 14px;
   display: flex;
   align-items: center;
@@ -59,3 +68,62 @@ button {
 .da-action-bar .hide {
   display: none;
 }
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.expand-toggle {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: inherit;
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+.expand-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+.items-list {
+  background: #BC1C74;
+  padding: 8px 16px;
+  overflow-y: auto;
+  max-height: 200px;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+  margin-top: 4px;
+}
+
+.item-entry {
+  padding: 4px 0;
+  font-size: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-entry:not(:last-child) {
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+
+.item-icon {
+  background-color: #de78b0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* :host {
+  display: contents;
+} */
