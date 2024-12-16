@@ -30,12 +30,14 @@ export default class DaList extends LitElement {
     _dropFiles: { state: true },
     _dropMessage: { state: true },
     _status: { state: true },
+    _lastCheckedIndex: { state: true },
   };
 
   constructor() {
     super();
     this._dropFiles = [];
     this._dropMessage = 'Drop content here';
+    this._lastCheckedIndex = null;
   }
 
   connectedCallback() {
@@ -97,6 +99,7 @@ export default class DaList extends LitElement {
   handleClear() {
     this._listItems = this._listItems.map((item) => ({ ...item, isChecked: false, rename: false }));
     this._selectedItems = [];
+    this._lastCheckedIndex = null;
     if (this.actionBar) this.actionBar.items = [];
   }
 
@@ -111,13 +114,24 @@ export default class DaList extends LitElement {
     this.requestUpdate();
   }
 
-  handleItemChecked(e, item) {
-    if (e.detail.checked) {
-      item.isChecked = true;
+  handleItemChecked(e, item, index) {
+    if (e.detail.shiftKey && this._lastCheckedIndex !== null) {
+      const start = Math.min(this._lastCheckedIndex, index);
+      const end = Math.max(this._lastCheckedIndex, index);
+
+      for (let i = start; i <= end; i += 1) {
+        this._listItems[i].isChecked = e.detail.checked;
+      }
+      this._lastCheckedIndex = index;
     } else {
-      item.isChecked = false;
+      item.isChecked = e.detail.checked;
+      this._lastCheckedIndex = e.detail.checked ? index : null;
+    }
+
+    if (!e.detail.checked) {
       item.rename = false;
     }
+
     this.handleSelectionState();
   }
 
@@ -369,7 +383,7 @@ export default class DaList extends LitElement {
       ${repeat(items, (item) => item.path, (item, idx) => html`
         <da-list-item
           role="listitem"
-          @checked=${(e) => this.handleItemChecked(e, item)}
+          @checked=${(e) => this.handleItemChecked(e, item, idx)}
           @onstatus=${({ detail }) => this.setStatus(detail.text, detail.description, detail.type)}
           allowselect="${this.select ? true : nothing}"
           ischecked="${item.isChecked ? true : nothing}"

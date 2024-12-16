@@ -51,6 +51,8 @@ export default class DaActionBar extends LitElement {
 
   handleClear() {
     this._canPaste = false;
+    this._isMoving = false;
+    this._isDeleting = false;
     const opts = { detail: true, bubbles: true, composed: true };
     const event = new CustomEvent('clearselection', opts);
     this.dispatchEvent(event);
@@ -63,20 +65,12 @@ export default class DaActionBar extends LitElement {
   }
 
   handleCopy() {
-    if (this.inNewDir()) {
-      this.handlePaste();
-    } else {
-      this._canPaste = true;
-    }
+    this._canPaste = true;
   }
 
   handleMove() {
     this._isMoving = true;
-    if (this.inNewDir()) {
-      this.handlePaste();
-    } else {
-      this._canPaste = true;
-    }
+    this._canPaste = true;
   }
 
   handlePaste() {
@@ -84,10 +78,10 @@ export default class DaActionBar extends LitElement {
     const opts = { bubbles: true, composed: true };
     const event = new CustomEvent('onpaste', { ...opts, detail });
     this.dispatchEvent(event);
-    this._isMoving = false;
   }
 
   handleDelete() {
+    this._isDeleting = true;
     const opts = { bubbles: true, composed: true };
     const event = new CustomEvent('ondelete', opts);
     this.dispatchEvent(event);
@@ -123,6 +117,13 @@ export default class DaActionBar extends LitElement {
     return this.items.some((item) => item.ext && item.ext !== 'link');
   }
 
+  get currentAction() {
+    if (this._canPaste && this._isMoving) return `Moving ${this.items.length} items`;
+    if (this._canPaste && !this._isMoving) return `Copying ${this.items.length} items`;
+    if (this._isDeleting) return `Deleting ${this.items.length} items`;
+    return `${this.items.length} selected`;
+  }
+
   toggleExpand() {
     this._isExpanded = !this._isExpanded;
     const event = new CustomEvent('actionbar-expand', {
@@ -145,7 +146,6 @@ export default class DaActionBar extends LitElement {
               <img src="/blocks/browse/da-browse/img/CrossSize200.svg" />
             </button>
             <div class="selection-info">
-              <span>${this.items.length} selected</span>
               ${this.items.length > 0
                 ? html`<button
                         class="expand-toggle ${this._isExpanded ? 'expanded' : ''}"
@@ -154,6 +154,7 @@ export default class DaActionBar extends LitElement {
                         ▶
                       </button>`
                 : ''}
+              <span>${this.currentAction}</span>
             </div>
           </div>
           <div class="da-action-bar-right-rail">
@@ -167,13 +168,13 @@ export default class DaActionBar extends LitElement {
               @click=${this.handleMove}
               class="copy-button ${this._canPaste ? 'hide' : ''}">
               <img src="/blocks/browse/da-browse/img/Smock_MoveTo_18_N.svg" />
-              <span>Move${this.inNewDir() ? ' to here' : ''}</span>
+              <span>Move</span>
             </button>
             <button
               @click=${this.handleCopy}
               class="copy-button ${this._canPaste ? 'hide' : ''}">
               <img src="/blocks/browse/da-browse/img/Smock_Copy_18_N.svg" />
-              <span>Copy${this.inNewDir() ? ' to here' : ''}</span>
+              <span>Copy</span>
             </button>
             <button
               @click=${this.handlePaste}
