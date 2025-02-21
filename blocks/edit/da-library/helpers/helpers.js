@@ -115,9 +115,15 @@ export async function getLibraryList() {
 
   const daLibraries = getDaLibraries(owner, repo);
   const aemPlugins = getAemPlugins(owner, repo);
+  const daLivePlugins = [{
+    experience: 'dialog',
+    icon: '/blocks/edit/img/Smock_Images_18_N.svg',
+    name: 'Assets',
+    url: '/blocks/edit/da-assets/da-assets.html',
+  }];
 
   const [da, aem] = await Promise.all([daLibraries, aemPlugins]);
-  libraries = [...da, ...aem];
+  libraries = [...da, ...daLivePlugins, ...aem];
 
   return libraries;
 }

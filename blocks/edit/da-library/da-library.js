@@ -265,7 +265,7 @@ class DaLibrary extends LitElement {
 
       const message = {
         ready: true,
-        project,
+        project: { ...project, nx: getNx() },
         context: project,
       };
       if (accessToken) message.token = accessToken.token;

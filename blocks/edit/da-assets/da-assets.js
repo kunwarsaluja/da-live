@@ -1,13 +1,10 @@
-import { getNx } from '../../../scripts/utils.js';
 import getPathDetails from '../../shared/pathDetails.js';
 import { DA_ORIGIN } from '../../shared/constants.js';
 import { daFetch } from '../../shared/utils.js';
 
-const { loadStyle } = await import(`${getNx()}/scripts/nexter.js`);
-const { loadIms, handleSignIn } = await import(`${getNx()}/utils/ims.js`);
-const loadScript = (await import(`${getNx()}/utils/script.js`)).default;
-
 const ASSET_SELECTOR_URL = 'https://experience.adobe.com/solutions/CQ-assets-selectors/assets/resources/assets-selectors.js';
+
+let loadStyle; let loadIms; let handleSignIn; let loadScript;
 
 export async function getRepoId() {
   const details = getPathDetails();
@@ -81,3 +78,13 @@ export async function openAssets() {
 
   dialog.showModal();
 }
+
+window.addEventListener('message', async (event) => {
+  console.log('Received from parent:', event.data);
+  const { nx } = event.data.project;
+  ({ loadStyle } = await import(`${nx}/scripts/nexter.js`));
+  ({ loadIms, handleSignIn } = await import(`${nx}/utils/ims.js`));
+  loadScript = (await import(`${nx}/utils/script.js`)).default;
+
+  openAssets();
+});

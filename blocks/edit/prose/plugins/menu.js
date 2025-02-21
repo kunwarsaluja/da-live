@@ -30,9 +30,6 @@ import openPrompt from '../../da-palette/da-palette.js';
 import openLibrary from '../../da-library/da-library.js';
 
 import insertTable from '../table.js';
-import { getRepoId, openAssets } from '../../da-assets/da-assets.js';
-
-const repoId = await getRepoId();
 
 function canInsert(state, nodeType) {
   const { $from } = state.selection;
@@ -541,13 +538,13 @@ function getMenu(view) {
       },
       class: 'open-library',
     }),
-    new MenuItem({
-      title: 'Open assets',
-      label: 'Assets',
-      enable() { return !!repoId; },
-      async run() { openAssets(); },
-      class: 'open-assets',
-    }),
+    // new MenuItem({
+    //   title: 'Open assets',
+    //   label: 'Assets',
+    //   enable() { return !!repoId; },
+    //   async run() { openAssets(); },
+    //   class: 'open-assets',
+    // }),
     new Dropdown(editTable, {
       label: 'Edit Block',
       class: 'edit-table',
