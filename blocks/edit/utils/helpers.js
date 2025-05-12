@@ -1,6 +1,7 @@
 import { AEM_ORIGIN, getDaAdmin } from '../../shared/constants.js';
 import prose2aem from '../../shared/prose2aem.js';
 import { daFetch } from '../../shared/utils.js';
+import { daMetadata } from '../prose/plugins/metadataSync.js';
 
 const DA_ORIGIN = getDaAdmin();
 
@@ -54,7 +55,7 @@ export function aem2prose(doc) {
   // Fix blocks
   const blocks = doc.querySelectorAll('main > div > div, da-loc-deleted > div, da-loc-added > div, da-loc-deleted.da-group > div > div, da-loc-added.da-group > div > div');
   blocks.forEach((block) => {
-    if (block.className?.includes('loc-')) return;
+    if (block.className?.includes('-loc-')) return;
     const table = getTable(block);
     block.parentElement.replaceChild(table, block);
     table.insertAdjacentElement('beforebegin', para());
@@ -76,6 +77,19 @@ export function aem2prose(doc) {
       p.parentElement.replaceChild(hr, p);
     }
   });
+
+  const daMetadataEl = doc.querySelector('da-metadata');
+  if (daMetadataEl && daMetadataEl.hasAttribute('data-md')) {
+    try {
+      const metadata = JSON.parse(daMetadataEl.dataset.md);
+      Object.keys(metadata).forEach((key) => {
+        daMetadata.set(doc, key, metadata[key]);
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Error parsing da-metadata', e);
+    }
+  }
 
   // Fix sections
   const sections = doc.body.querySelectorAll('main > div');

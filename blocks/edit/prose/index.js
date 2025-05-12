@@ -1,4 +1,4 @@
-/* eslint-disable max-classes-per-file */
+/* eslint-disable max-classes-per-file, no-unused-vars */
 import {
   EditorState,
   EditorView,
@@ -20,6 +20,8 @@ import {
   yUndoPlugin,
   yUndo,
   yRedo,
+  Plugin,
+  PluginKey,
 } from 'da-y-wrapper';
 
 // DA
@@ -35,6 +37,7 @@ import { getLocClass } from './loc-utils.js';
 import { getSchema } from './schema.js';
 import slashMenu from './plugins/slashMenu/slashMenu.js';
 import { handleTableBackspace, handleTableTab, getEnterInputRulesPlugin } from './plugins/keyHandlers.js';
+import { createMetadataSyncPlugin, daMetadata } from './plugins/metadataSync.js';
 
 let sendUpdates = false;
 let hasChanged = 0;
@@ -174,7 +177,10 @@ function restoreCursorPosition(view) {
 
 export default function initProse({ path, permissions }) {
   // Destroy ProseMirror if it already exists - GH-212
-  if (window.view) delete window.view;
+  if (window.view) {
+    // Clean up previous instance if exists
+    delete window.view;
+  }
   const editor = document.createElement('div');
   editor.className = 'da-prose-mirror';
 
@@ -198,20 +204,16 @@ export default function initProse({ path, permissions }) {
   registerErrorHandler(ydoc);
 
   const yXmlFragment = ydoc.getXmlFragment('prosemirror');
+  const yMetadata = ydoc.getMap('da-metadata');
 
   if (window.adobeIMS?.isSignedInUser()) {
-    window.adobeIMS.getProfile().then(
-      (profile) => {
-        wsProvider.awareness.setLocalStateField(
-          'user',
-          {
-            color: generateColor(profile.email || profile.userId),
-            name: profile.displayName,
-            id: profile.userId,
-          },
-        );
-      },
-    );
+    window.adobeIMS.getProfile().then((profile) => {
+      wsProvider.awareness.setLocalStateField('user', {
+        color: generateColor(profile.email || profile.userId),
+        name: profile.displayName,
+        id: profile.userId,
+      });
+    });
   } else {
     wsProvider.awareness.setLocalStateField(
       'user',
@@ -227,6 +229,7 @@ export default function initProse({ path, permissions }) {
     ySyncPlugin(yXmlFragment),
     yCursorPlugin(wsProvider.awareness),
     yUndoPlugin(),
+    createMetadataSyncPlugin(yMetadata, ydoc),
     slashMenu(),
     imageDrop(schema),
     linkConverter(schema),
@@ -295,7 +298,10 @@ export default function initProse({ path, permissions }) {
     editable() { return canWrite; },
   });
 
-  handleProseLoaded(editor, permissions);
+  daMetadata.set(window.view, 'testKey', 'testValue');
+  window.daMetadata = daMetadata;
+
+  handleProseLoaded(editor);
 
   document.execCommand('enableObjectResizing', false, 'false');
   document.execCommand('enableInlineTableEditing', false, 'false');

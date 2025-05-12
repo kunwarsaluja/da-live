@@ -1,3 +1,12 @@
+import { daMetadata } from '../edit/prose/plugins/metadataSync.js';
+
+const encodeHTMLAttribute = (str) => String(str)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 function toBlockCSSClassNames(text) {
   if (!text) return [];
   const names = [];
@@ -180,10 +189,19 @@ export default function prose2aem(editor, live) {
 
   makeSections(editor);
 
+  let daMetadataString = '';
+  if (daMetadata) {
+    const metadata = daMetadata.getAll(window.view);
+    if (Object.keys(metadata).length) {
+      const encodedMd = encodeHTMLAttribute(JSON.stringify(metadata));
+      daMetadataString = `<da-metadata data-md="${encodedMd}"></da-metadata>`;
+    }
+  }
+
   const html = `
     <body>
       <header></header>
-      <main>${editor.innerHTML}</main>
+      <main>${editor.innerHTML}${daMetadataString}</main>
       <footer></footer>
     </body>
   `;
