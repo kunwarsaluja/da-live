@@ -102,7 +102,8 @@ export default class DaSearch extends LitElement {
     this._term = term;
     this._action = 'Found';
     performance.mark('start-search');
-    await this.getMatches(startPath, term);
+    const normalizedTerm = term.endsWith('/') ? term.slice(0, -1) : term;
+    await this.getMatches(startPath, normalizedTerm);
     performance.mark('end-search');
 
     const timestamp = Date.now();
