@@ -15,6 +15,7 @@ const ICONS = [
   '/blocks/edit/img/Smock_Checkmark_18_N.svg',
   '/blocks/edit/img/Smock_Refresh_18_N.svg',
 ];
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 export default class DaList extends LitElement {
   static properties = {
@@ -42,6 +43,7 @@ export default class DaList extends LitElement {
     this._dropMessage = 'Drop content here';
     this._lastCheckedIndex = null;
     this._filter = '';
+    this._listItems = [];
   }
 
   connectedCallback() {
@@ -58,7 +60,29 @@ export default class DaList extends LitElement {
     if (props.has('fullpath') && this.fullpath) {
       this._filter = '';
       this._showFilter = undefined;
-      this._listItems = await this.getList();
+      // Clear current items to avoid showing stale data from previous path
+      this._listItems = [];
+
+      const pathSnapshot = this.fullpath;
+      const nextFetchId = (this._listFetchId || 0) + 1;
+      this._listFetchId = nextFetchId;
+      const requestId = nextFetchId;
+
+      // Kick off network fetch immediately
+      this.getList(pathSnapshot).then(({ list, permissions }) => {
+        if (requestId !== this._listFetchId || this.fullpath !== pathSnapshot) return;
+        if (permissions) this.handlePermissions(permissions);
+        this._listItems = list;
+        this.requestUpdate();
+      }).catch(() => {
+        // TODO: Consider surfacing fetch errors to the UI if needed
+      });
+
+      // Hydrate from cache if fresh
+      const cached = this.readCache(pathSnapshot);
+      if (cached && requestId === this._listFetchId && this.fullpath === pathSnapshot) {
+        this._listItems = cached;
+      }
     }
 
     if (props.has('newItem') && this.newItem) {
@@ -85,10 +109,40 @@ export default class DaList extends LitElement {
     this.dispatchEvent(event);
   }
 
-  async getList() {
-    const resp = await daFetch(`${DA_ORIGIN}/list${this.fullpath}`);
-    if (resp.permissions) this.handlePermissions(resp.permissions);
-    return resp.json();
+  getCacheKey(path = this.fullpath) {
+    return `da-list-cache:${DA_ORIGIN}/list${path}`;
+  }
+
+  readCache(path = this.fullpath) {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      const raw = window.localStorage.getItem(this.getCacheKey(path));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.timestamp !== 'number') return null;
+      const isFresh = Date.now() - parsed.timestamp < CACHE_TTL_MS;
+      return isFresh ? parsed.data : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  writeCache(data, path = this.fullpath) {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      const payload = JSON.stringify({ timestamp: Date.now(), data });
+      window.localStorage.setItem(this.getCacheKey(path), payload);
+    } catch (_) {
+      // Swallow quota or serialization errors silently
+    }
+  }
+
+  async getList(path = this.fullpath) {
+    const resp = await daFetch(`${DA_ORIGIN}/list${path}`);
+    const { permissions } = resp;
+    const list = await resp.json();
+    this.writeCache(list, path);
+    return { list, permissions };
   }
 
   handleNewItem() {
